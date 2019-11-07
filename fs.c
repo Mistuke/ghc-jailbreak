@@ -493,6 +493,25 @@ int FS(_wstat64) (const wchar_t *path, struct __stat64 *buffer)
   return result;
 }
 
+int FS(_wrename) (const wchar_t *from, const wchar_t *to)
+{
+  if (MoveFileW(from, to) == 0) {
+    return setErrNoFromWin32Error ();
+  }
+  return 0;
+}
+
+int FS(_rename) (const char *from, const char *to)
+{
+  const wchar_t *w_from = FS(to_wide) (from);
+  const wchar_t *w_to = FS(to_wide) (to);
+  int result = FS(_wrename) (path, &buf);
+  free(w_from);
+  free(w_to);
+
+  return result;
+}
+
 #else
 FILE *FS(fopen) (const char* filename, const char* mode)
 {

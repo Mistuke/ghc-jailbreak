@@ -1540,3 +1540,6 @@ _stat=muxcrt.__phyx__stat
 _stat64=muxcrt.__phyx__stat64
 _stati64=muxcrt.__phyx__stat64
 _stat64i32=muxcrt.__phyx__stat
+
+_rename=muxcrt.__phyx__rename
+_wrename=muxcrt.__phyx__wrename
