@@ -1510,6 +1510,7 @@ wscanf=msvcrt.wscanf
 wscanf_s=msvcrt.wscanf_s
 
 _fstat=msvcrt._fstat
+_fstat32=msvcrt._fstat32
 _fstat64=msvcrt._fstat64
 _fstati64=msvcrt._fstati64
 _fstat64i32=msvcrt._fstat
@@ -1524,15 +1525,17 @@ _wopen=muxcrt.__phyx__wopen
 _wsopen=muxcrt.__phyx__wsopen
 fopen=muxcrt.__phyx_fopen
 
-_wstat=muxcrt.__phyx__wstat
+_wstat32=muxcrt.__phyx__wstat32
 _wstat64=muxcrt.__phyx__wstat64
 _wstati64=muxcrt.__phyx__wstat64
-_wstat64i32=muxcrt.__phyx__wstat
+_wstat32i64=muxcrt.__phyx__wstat32i64
+_wstat64i32=muxcrt.__phyx__wstat64i32
 
-_stat=muxcrt.__phyx__stat
+_stat32=muxcrt.__phyx__stat32
 _stat64=muxcrt.__phyx__stat64
 _stati64=muxcrt.__phyx__stat64
-_stat64i32=muxcrt.__phyx__stat
+_stat64i32=muxcrt.__phyx__stat64i32
+_stat32i64=muxcrt.__phyx__stat32i64
 
 rename=muxcrt.__phyx_rename
 _wrename=muxcrt.__phyx__wrename
