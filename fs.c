@@ -115,10 +115,21 @@ wchar_t* FS(create_device_name) (const wchar_t* filename) {
 
   /* Create new string.  */
   int bLen = wcslen (result) + wcslen (ns) + 1;
+  /* Now we have to preserve a hack from GCC where directories end with /.
+     to indicate that a trailing / is wanted.  Otherwise invalid paths are
+     created.  */
+  wchar_t *slash = wcsrchr(filename, L'/');
+  wchar_t *template=L"%ls%ls";
+  if (slash && !wcscmp(slash, L"/."))
+  {
+    bLen++;
+    template = L"%ls%ls\\";
+  }
+
   temp = _wcsdup (result);
   free (result);
   result = malloc (bLen * sizeof (wchar_t));
-  if (swprintf (result, bLen, L"%ls%ls", ns, temp) <= 0)
+  if (swprintf (result, bLen, template, ns, temp) <= 0)
     {
       goto cleanup;
     }
@@ -475,7 +486,7 @@ static int FS(wstat_helper) (const wchar_t *path, WIN32_FILE_ATTRIBUTE_DATA *fin
     }
 
   ZeroMemory (finfo, sizeof (WIN32_FILE_ATTRIBUTE_DATA));
-  if(!GetFileAttributesExW (_path, GetFileExInfoStandard, &finfo))
+  if(GetFileAttributesExW (_path, GetFileExInfoStandard, finfo) != 0)
     {
       free (_path);
       CloseHandle (hResult);
@@ -492,7 +503,7 @@ static unsigned short FS(get_mode) (const wchar_t *path, WIN32_FILE_ATTRIBUTE_DA
   unsigned short mode = _S_IREAD;
 
   if (finfo->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    mode |= (_S_IFDIR | _S_IEXEC);
+    mode |= _S_IFDIR;
   else
   {
     mode |= _S_IFREG;
@@ -518,7 +529,7 @@ int FS(_wstat32) (const wchar_t *path, struct _stat32 *buffer)
   ZeroMemory (buffer, sizeof (struct _stat32));
   buffer->st_mode  = FS(get_mode) (path, &finfo);
   buffer->st_nlink = 1;
-  buffer->st_size  = finfo.nFileSizeLow;
+  buffer->st_size  = buffer->st_mode & _S_IFDIR ? 0 : finfo.nFileSizeLow;
   buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
   buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
   // TODO: Handle time overflow
@@ -533,7 +544,9 @@ int FS(_wstat64) (const wchar_t *path, struct _stat64 *buffer)
   ZeroMemory (buffer, sizeof (struct _stat64));
   buffer->st_mode  = FS(get_mode) (path, &finfo);
   buffer->st_nlink = 1;
-  buffer->st_size  = ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
+  buffer->st_size
+    = buffer->st_mode & _S_IFDIR
+    ? 0 : ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
   buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
   buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
   return result;
@@ -547,7 +560,9 @@ int FS(_wstat32i64) (const wchar_t *path, struct _stat32i64 *buffer)
   ZeroMemory (buffer, sizeof (struct _stat32i64));
   buffer->st_mode  = FS(get_mode) (path, &finfo);
   buffer->st_nlink = 1;
-  buffer->st_size  = ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
+  buffer->st_size
+    = buffer->st_mode & _S_IFDIR
+    ? 0 : ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
   buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
   buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
   // TODO: Handle time overflow
@@ -565,7 +580,7 @@ int FS(_wstat64i32) (const wchar_t *path, struct _stat64i32 *buffer)
   ZeroMemory (buffer, sizeof (struct _stat64i32));
   buffer->st_mode  = FS(get_mode) (path, &finfo);
   buffer->st_nlink = 1;
-  buffer->st_size  = finfo.nFileSizeLow;
+  buffer->st_size  = buffer->st_mode & _S_IFDIR ? 0 : finfo.nFileSizeLow;
   buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
   buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
   return result;
