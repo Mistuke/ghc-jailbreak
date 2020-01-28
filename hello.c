@@ -25,8 +25,8 @@ int main ()
   //remove ("R:\\bar.c");
 
   volatile struct _stati64 old, new;
-  _stati64 ( "r://ghc-8.6.5-old//mingw//bin/../lib/gcc/i686-w64-mingw32/7.2.0/.", &old );
-  FS(_stati64) ( "r://ghc-8.6.5-old//mingw//bin/../lib/gcc/i686-w64-mingw32/7.2.0/.", &new );
+  _stati64 ( "r:/ghc-8.6.5/mingw/bin/../lib/gcc/i686-w64-mingw32/7.2.0/lto-wrapper.exe", &old );
+  FS(_stati64) ( "r:/ghc-8.6.5/mingw/bin/../lib/gcc/i686-w64-mingw32/7.2.0/lto-wrapper.exe", &new );
 
   DebugBreak ();
   return 0;

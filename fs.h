@@ -33,6 +33,12 @@ int FS(sopen) (const char* filename, int oflag,
                int shflag, int pmode);
 FILE *FS(fwopen) (const wchar_t* filename, const wchar_t* mode);
 FILE *FS(fopen) (const char* filename, const char* mode);
+FILE *FS(_fsopen) (const char *filename, const char *mode, int shflag);
+FILE *FS(_wfsopen) (const wchar_t *filename, const wchar_t *mode, int shflag);
+int FS(_open) (const char *filename, int oflag, int pmode);
+int FS(_wopen) (const wchar_t *filename, int oflag, int pmode);
+int FS(_sopen) (const char *filename, int oflag, int shflag, int pmode);
+int FS(_wsopen) (const wchar_t *filename, int oflag, int shflag, int pmode);
 int FS(_stat32) (const char *path, struct _stat32 *buffer);
 int FS(_stat64) (const char *path, struct _stat64 *buffer);
 int FS(_stat64i32) (const char *path, struct _stat64i32 *buffer);
@@ -43,6 +49,9 @@ int FS(_wstat64i32) (const wchar_t *path, struct _stat64i32 *buffer);
 int FS(_wstat32i64) (const wchar_t *path, struct _stat32i64 *buffer);
 int FS(_wrename) (const wchar_t *from, const wchar_t *to);
 int FS(rename) (const char *from, const char *to);
+
+int FS(_access) (const char *path, int mode);
+int FS(_waccess) (const wchar_t *path, int mode);
 
 int FS(unlink) (const char *filename);
 int FS(_unlink) (const char *filename);

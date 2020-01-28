@@ -203,6 +203,7 @@ __iscsym=msvcrt.__iscsym
 __iscsymf=msvcrt.__iscsymf
 __lc_clike=msvcrt.__lc_clike
 __lc_codepage=msvcrt.__lc_codepage DATA
+___lc_codepage_func=msvcrt.___lc_codepage_func
 __lc_collate_cp=msvcrt.__lc_collate_cp DATA
 __lc_handle=msvcrt.__lc_handle DATA
 __lconv_init=msvcrt.__lconv_init
