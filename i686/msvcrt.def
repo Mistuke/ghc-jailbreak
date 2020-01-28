@@ -203,6 +203,7 @@ __iscsym=msvcrt.__iscsym
 __iscsymf=msvcrt.__iscsymf
 __lc_clike=msvcrt.__lc_clike
 __lc_codepage=msvcrt.__lc_codepage DATA
+___lc_codepage_func=msvcrt.___lc_codepage_func
 __lc_collate_cp=msvcrt.__lc_collate_cp DATA
 __lc_handle=msvcrt.__lc_handle DATA
 __lconv_init=msvcrt.__lconv_init
@@ -1463,33 +1464,37 @@ _fstat=msvcrt._fstat
 _fstat32=msvcrt._fstat
 _fstat64=msvcrt._fstat64
 _fstati64=msvcrt._fstati64
+_fstat64i32=msvcrt._fstat64i32
+_fstat32i64=msvcrt._fstat32i64
 
 ; re-directed api calls
-_fsopen=muxcrt.___phyx__fsopen
-_open=muxcrt.___phyx__open
-_sopen=muxcrt.___phyx__sopen
-_wfopen=muxcrt.___phyx__wfopen
-_wfsopen=muxcrt.___phyx__wfsopen
-_wopen=muxcrt.___phyx__wopen
-_wsopen=muxcrt.___phyx__wsopen
-fopen=muxcrt.___phyx_fopen
+_fsopen=muxcrt.__phyx__fsopen
+_open=muxcrt.__phyx__open
+_sopen=muxcrt.__phyx__sopen
+_wfopen=muxcrt.__phyx__wfopen
+_wfsopen=muxcrt.__phyx__wfsopen
+_wopen=muxcrt.__phyx__wopen
+_wsopen=muxcrt.__phyx__wsopen
+fopen=muxcrt.__phyx_fopen
 
-_wstat=muxcrt.___phyx__wstat
-_wstat64=muxcrt.___phyx__wstat64
-_wstati64=muxcrt.___phyx__wstat64
-_wstat32=muxcrt.___phyx__wstat
+_wstat32=muxcrt.__phyx__wstat32
+_wstat64=muxcrt.__phyx__wstat64
+_wstati64=muxcrt.__phyx__wstati64
+_wstat32i64=muxcrt.__phyx__wstati64
+_wstat64i32=muxcrt.__phyx__wstat64i32
 
-_stat=muxcrt.___phyx__stat
-_stat64=muxcrt.___phyx__stat64
-_stati64=muxcrt.___phyx__stat64
-_stat32=muxcrt.___phyx__stat
+_stat32=muxcrt.__phyx__stat32
+_stat64=muxcrt.__phyx__stat64
+_stati64=muxcrt.__phyx__stati64
+_stat32i64=muxcrt.__phyx__stati64
+_stat64i32=muxcrt.__phyx__stat64i32
 
-rename=muxcrt.___phyx_rename
-_wrename=muxcrt.___phyx__wrename
+rename=muxcrt.__phyx_rename
+_wrename=muxcrt.__phyx__wrename
 
-unlink=muxcrt.___phyx__unlink
-_unlink=muxcrt.___phyx__unlink
-_wunlink=muxcrt.___phyx__wunlink
+unlink=muxcrt.__phyx__unlink
+_unlink=muxcrt.__phyx__unlink
+_wunlink=muxcrt.__phyx__wunlink
 
-remove=muxcrt.___phyx_remove
-_wremove=muxcrt.___phyx__wremove
+remove=muxcrt.__phyx_remove
+_wremove=muxcrt.__phyx__wremove

@@ -115,10 +115,21 @@ wchar_t* FS(create_device_name) (const wchar_t* filename) {
 
   /* Create new string.  */
   int bLen = wcslen (result) + wcslen (ns) + 1;
+  /* Now we have to preserve a hack from GCC where directories end with /.
+     to indicate that a trailing / is wanted.  Otherwise invalid paths are
+     created.  */
+  wchar_t *slash = wcsrchr(filename, L'/');
+  wchar_t *template=L"%ls%ls";
+  if (slash && !wcscmp(slash, L"/."))
+  {
+    bLen++;
+    template = L"%ls%ls\\";
+  }
+
   temp = _wcsdup (result);
   free (result);
   result = malloc (bLen * sizeof (wchar_t));
-  if (swprintf (result, bLen, L"%ls%ls", ns, temp) <= 0)
+  if (swprintf (result, bLen, template, ns, temp) <= 0)
     {
       goto cleanup;
     }
@@ -355,16 +366,7 @@ int FS(translate_mode) (const wchar_t* mode)
 
 FILE *FS(fwopen) (const wchar_t* filename, const wchar_t* mode)
 {
-  int shflag = 0;
-  int pmode  = 0;
-  int oflag  = FS(translate_mode) (mode);
-
-  int fd = FS(swopen) (filename, oflag, shflag, pmode);
-  if (fd < 0)
-    return NULL;
-
-  FILE* file = _wfdopen (fd, mode);
-  return file;
+  return FS(_wfsopen) (filename, mode, 0);
 }
 
 FILE *FS(fopen) (const char* filename, const char* mode)
@@ -388,19 +390,112 @@ int FS(sopen) (const char* filename, int oflag, int shflag, int pmode)
   return result;
 }
 
-int FS(_stat) (const char *path, struct _stat *buffer)
+FILE *FS(_wfopen) (
+  const wchar_t *filename,
+  const wchar_t *mode)
+{
+  return FS(fwopen) (filename, mode);
+}
+
+int FS(_open) (
+  const char *filename,
+  int oflag,
+  int pmode)
+{
+  wchar_t * const w_filename = FS(to_wide) (filename);
+
+  int result = FS(_wopen) (w_filename, oflag, pmode);
+  free (w_filename);
+  return result;
+}
+
+int FS(_wopen) (
+  const wchar_t *filename,
+  int oflag,
+  int pmode)
+{
+  return FS(swopen) (filename, oflag, 0, pmode);
+}
+
+int FS(_sopen) (
+  const char *filename,
+  int oflag,
+  int shflag,
+  int pmode)
+{
+  wchar_t * const w_filename = FS(to_wide) (filename);
+
+  int result = FS(_wsopen) (w_filename, oflag, shflag, pmode);
+  free (w_filename);
+  return result;
+}
+
+int FS(_wsopen) (
+  const wchar_t *filename,
+  int oflag,
+  int shflag,
+  int pmode)
+{
+  return FS(swopen) (filename, oflag, shflag, pmode);
+}
+
+FILE *FS(_fsopen) (const char *filename, const char *mode, int shflag)
+{
+  printf ("%s\n", filename);
+  wchar_t * const w_filename = FS(to_wide) (filename);
+  wchar_t * const w_mode = FS(to_wide) (mode);
+
+  FILE *result = FS(_wfsopen) (w_filename, w_mode, shflag);
+  free (w_filename);
+  free (w_mode);
+
+  return result;
+}
+
+FILE *FS(_wfsopen) (const wchar_t *filename, const wchar_t *mode, int shflag)
+{
+  int pmode  = 0;
+  int oflag  = FS(translate_mode) (mode);
+
+  int fd = FS(swopen) (filename, oflag, shflag, pmode);
+  if (fd < 0)
+    return NULL;
+
+  FILE* file = _wfdopen (fd, mode);
+  return file;
+}
+
+int FS(_stat32) (const char *path, struct _stat32 *buffer)
 {
   wchar_t * const w_path = FS(to_wide) (path);
-  int result = FS(_wstat) (w_path, buffer);
+  int result = FS(_wstat32) (w_path, buffer);
   free (w_path);
 
   return result;
 }
 
-int FS(_stat64) (const char *path, struct __stat64 *buffer)
+int FS(_stat64) (const char *path, struct _stat64 *buffer)
 {
   wchar_t * const w_path = FS(to_wide) (path);
   int result = FS(_wstat64) (w_path, buffer);
+  free (w_path);
+
+  return result;
+}
+
+int FS(_stat32i64) (const char *path, struct _stat32i64 *buffer)
+{
+  wchar_t * const w_path = FS(to_wide) (path);
+  int result = FS(_wstat32i64) (w_path, buffer);
+  free (w_path);
+
+  return result;
+}
+
+int FS(_stat64i32) (const char *path, struct _stat64i32 *buffer)
+{
+  wchar_t * const w_path = FS(to_wide) (path);
+  int result = FS(_wstat64i32) (w_path, buffer);
   free (w_path);
 
   return result;
@@ -428,9 +523,8 @@ static __time64_t ftToPosix(FILETIME ft)
   return (__time64_t)date.QuadPart / 10000000;
 }
 
-int FS(_wstat) (const wchar_t *path, struct _stat *buffer)
+static int FS(wstat_helper) (const wchar_t *path, WIN32_FILE_ATTRIBUTE_DATA *finfo)
 {
-  ZeroMemory (buffer, sizeof (struct _stat));
   wchar_t* _path = FS(create_device_name) (path);
   if (!_path)
     return -1;
@@ -457,53 +551,114 @@ int FS(_wstat) (const wchar_t *path, struct _stat *buffer)
       return setErrNoFromWin32Error ();
     }
 
-  WIN32_FILE_ATTRIBUTE_DATA finfo;
-  ZeroMemory (&finfo, sizeof (WIN32_FILE_ATTRIBUTE_DATA));
-  if(!GetFileAttributesExW (_path, GetFileExInfoStandard, &finfo))
+  ZeroMemory (finfo, sizeof (WIN32_FILE_ATTRIBUTE_DATA));
+  if(!GetFileAttributesExW (_path, GetFileExInfoStandard, finfo))
     {
       free (_path);
       CloseHandle (hResult);
       return setErrNoFromWin32Error ();
     }
 
-  unsigned short mode = _S_IREAD;
-
-  if (finfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    mode |= (_S_IFDIR | _S_IEXEC);
-  else
-  {
-    mode |= _S_IFREG;
-    DWORD type;
-    if (GetBinaryTypeW (_path, &type))
-      mode |= _S_IEXEC;
-  }
-
-  if (!(finfo.dwFileAttributes & FILE_ATTRIBUTE_READONLY))
-    mode |= _S_IWRITE;
-
-  buffer->st_mode  = mode;
-  buffer->st_nlink = 1;
-  buffer->st_size  = ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
-  buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
-  buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
   free (_path);
   CloseHandle (hResult);
   return 0;
 }
 
-int FS(_wstat64) (const wchar_t *path, struct __stat64 *buffer)
+static unsigned short FS(get_mode) (const wchar_t *path, WIN32_FILE_ATTRIBUTE_DATA *finfo)
 {
-  struct _stat buf;
-  ZeroMemory (buffer, sizeof (struct __stat64));
+  unsigned short mode = _S_IREAD;
 
-  int result = FS(_wstat) (path, &buf);
+  if (finfo->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    mode |= _S_IFDIR;
+  else
+  {
+    mode |= _S_IFREG;
+    DWORD type;
+    if (GetBinaryTypeW (path, &type))
+      mode |= _S_IEXEC;
+  }
 
-  buffer->st_mode = buf.st_mode;
+  if (!(finfo->dwFileAttributes & FILE_ATTRIBUTE_READONLY))
+    mode |= _S_IWRITE;
+
+  return mode;
+}
+
+int FS(_wstat32) (const wchar_t *path, struct _stat32 *buffer)
+{
+  WIN32_FILE_ATTRIBUTE_DATA finfo;
+  ZeroMemory (buffer, sizeof (struct _stat32));
+  int result = FS(wstat_helper) (path, &finfo);
+  if (result)
+    return result;
+
+  if (finfo.nFileSizeHigh) {
+    return EOVERFLOW;
+  }
+
+  buffer->st_mode  = FS(get_mode) (path, &finfo);
   buffer->st_nlink = 1;
-  buffer->st_size = buf.st_size;
-  buffer->st_atime = buf.st_atime;
-  buffer->st_mtime = buf.st_mtime;
+  buffer->st_size  = buffer->st_mode & _S_IFDIR ? 0 : finfo.nFileSizeLow;
+  buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
+  buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
+  // TODO: Handle time overflow
+  return result;
+}
 
+int FS(_wstat64) (const wchar_t *path, struct _stat64 *buffer)
+{
+  WIN32_FILE_ATTRIBUTE_DATA finfo;
+  ZeroMemory (buffer, sizeof (struct _stat64));
+  int result = FS(wstat_helper) (path, &finfo);
+  if (result)
+    return result;
+
+  buffer->st_mode  = FS(get_mode) (path, &finfo);
+  buffer->st_nlink = 1;
+  buffer->st_size
+    = buffer->st_mode & _S_IFDIR
+    ? 0 : ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
+  buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
+  buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
+  return result;
+}
+
+int FS(_wstat32i64) (const wchar_t *path, struct _stat32i64 *buffer)
+{
+  WIN32_FILE_ATTRIBUTE_DATA finfo;
+  ZeroMemory (buffer, sizeof (struct _stat32i64));
+  int result = FS(wstat_helper) (path, &finfo);
+  if (result)
+    return result;
+
+  buffer->st_mode  = FS(get_mode) (path, &finfo);
+  buffer->st_nlink = 1;
+  buffer->st_size
+    = buffer->st_mode & _S_IFDIR
+    ? 0 : ((uint64_t)finfo.nFileSizeHigh << 32) + finfo.nFileSizeLow;
+  buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
+  buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
+  // TODO: Handle time overflow
+  return result;
+}
+
+int FS(_wstat64i32) (const wchar_t *path, struct _stat64i32 *buffer)
+{
+  WIN32_FILE_ATTRIBUTE_DATA finfo;
+  ZeroMemory (buffer, sizeof (struct _stat64i32));
+  int result = FS(wstat_helper) (path, &finfo);
+  if (result)
+    return result;
+
+  if (finfo.nFileSizeHigh) {
+    return EOVERFLOW;
+  }
+
+  buffer->st_mode  = FS(get_mode) (path, &finfo);
+  buffer->st_nlink = 1;
+  buffer->st_size  = buffer->st_mode & _S_IFDIR ? 0 : finfo.nFileSizeLow;
+  buffer->st_atime = ftToPosix (finfo.ftLastAccessTime);
+  buffer->st_mtime = buffer->st_ctime = ftToPosix (finfo.ftLastWriteTime);
   return result;
 }
 
@@ -579,6 +734,45 @@ int FS(remove) (const char *path)
 int FS(_wremove) (const wchar_t *path)
 {
   return FS(_wunlink) (path);
+}
+
+int FS(_access) (const char *path, int mode)
+{
+  wchar_t * const w_path = FS(to_wide) (path);
+  return FS(_waccess) (w_path, mode);
+}
+
+int FS(_waccess) (const wchar_t *path, int mode)
+{
+  WIN32_FILE_ATTRIBUTE_DATA finfo;
+  int result = FS(wstat_helper) (path, &finfo);
+  if (result)
+    return result;
+
+  unsigned short smode = FS(get_mode) (path, &finfo);
+#define _A_EXIST     00
+#define _A_WRITE     02
+#define _A_READ      04
+#define _A_READWRITE 06
+
+  result = -1;
+  switch (mode)
+  {
+    case _A_EXIST:
+    case _A_READ:
+      result = smode & _S_IREAD ? 0 : -1;
+      break;
+    case _A_WRITE:
+      result = smode & _S_IWRITE ? 0 : -1;
+      break;
+    case _A_READWRITE:
+      result = smode & (_S_IWRITE | _S_IREAD) ? 0 : -1;
+      break;
+    default:
+      errno = EINVAL;
+      break;
+  }
+  return result;
 }
 #else
 FILE *FS(fopen) (const char* filename, const char* mode)

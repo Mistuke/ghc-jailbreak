@@ -4,6 +4,7 @@
 #include "fs.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 int main ()
 {
@@ -21,6 +22,12 @@ int main ()
   printf ("Hello Worldsa!%d (%d) %d\n", f, err, g);
 */
   //rename ("R:\\foo.c", "R:\\bar.c");
-  remove ("R:\\bar.c");
+  //remove ("R:\\bar.c");
+
+  volatile struct _stati64 old, new;
+  _stati64 ( "r:/ghc-8.6.5/mingw/bin/../lib/gcc/i686-w64-mingw32/7.2.0/lto-wrapper.exe", &old );
+  FS(_stati64) ( "r:/ghc-8.6.5/mingw/bin/../lib/gcc/i686-w64-mingw32/7.2.0/lto-wrapper.exe", &new );
+
+  DebugBreak ();
   return 0;
 }

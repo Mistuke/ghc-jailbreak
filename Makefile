@@ -19,6 +19,6 @@ clean:
 iat-patcher: fs.c iat-patcher.c
 	$(CC) $(CFLAGS) fs.c iat-patcher.c -o $(target)/iat-patcher.exe $(LDFLAGS)
 
-runtime: $(target)/msvcrt.def fs.c phxcrt.c
-	$(CC) -shared phxcrt.c fs.c -o $(target)/muxcrt.dll
+runtime: $(target)/msvcrt.def fs.c
+	$(CC) -shared fs.c -o $(target)/muxcrt.dll
 	$(CC) -shared $(target)/msvcrt.def -o $(target)/phxcrt.dll
